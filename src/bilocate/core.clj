@@ -1,7 +1,7 @@
 (ns bilocate.core
   (:require [clojure.tools.nrepl :as repl]))
 
-(defonce ^:dynamic *nrepl-spec* [:port 40643])
+(defonce ^:dynamic *nrepl-spec* nil)
 (defonce ^:dynamic *nrepl-timeout* 10000)
 
 (defn set-nrepl-spec! [& opts]
