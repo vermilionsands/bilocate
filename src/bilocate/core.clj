@@ -25,10 +25,13 @@
 (defn remote-fn-call [sym & args]
   (remote-eval (cons sym (apply list args))))
 
-(defn require-remote-ns [sym & opts]
+(defn require-remote-ns [& args]
+  (let [sym (first args)
+        reload (= (second args) :reload)]
   (when (remote-eval `(ns-name (find-ns '~sym)))
     (do
       (create-ns sym)
       (let [remote-vars (remote-eval `(map first (ns-publics '~sym)))]
         (doseq [name remote-vars]
-          (intern sym name (partial remote-fn-call (symbol (str sym) (str name)))))))))
+          (when (or reload (not (find-var (symbol (str sym) (str name)))))
+            (intern sym name (partial remote-fn-call (symbol (str sym) (str name)))))))))))
