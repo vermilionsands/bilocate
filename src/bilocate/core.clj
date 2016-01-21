@@ -25,13 +25,24 @@
 (defn remote-fn-call [sym & args]
   (remote-eval (cons sym (apply list args))))
 
+(defn- parse-namespace-arg [x]
+  (if (vector? x)
+    [(first x) (apply hash-map (rest x))]
+    [x {}]))
+
 (defn require-remote-ns [& args]
-  (let [sym (first args)
+  (let [[sym {as :as referred :refer}] (parse-namespace-arg (first args))
         reload (= (second args) :reload)]
-  (when (remote-eval `(ns-name (find-ns '~sym)))
-    (do
-      (create-ns sym)
-      (let [remote-vars (remote-eval `(map first (ns-publics '~sym)))]
-        (doseq [name remote-vars]
-          (when (or reload (not (find-var (symbol (str sym) (str name)))))
-            (intern sym name (partial remote-fn-call (symbol (str sym) (str name)))))))))))
+    (when (remote-eval `(ns-name (find-ns '~sym)))
+      (do
+        (create-ns sym)
+        (when as (alias as sym))
+        (let [remote-vars (remote-eval `(map first (ns-publics '~sym)))]
+          (doseq [name remote-vars]
+            (when (or reload
+                      (not (find-var (symbol (str sym) (str name)))))
+              (intern sym name (partial remote-fn-call (symbol (str sym) (str name)))))
+            (when (or (= referred :all)
+                      (some (partial = name) referred))
+              (intern *ns* name (find-var (symbol (str sym) (str name)))))))))))
+
