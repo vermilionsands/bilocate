@@ -2,18 +2,14 @@
   (:require [clojure.tools.nrepl :as repl]))
 
 (defonce ^:dynamic *nrepl-spec* nil)
-(defonce ^:dynamic *nrepl-timeout* 10000)
 
 (defn set-nrepl-spec! [& opts]
-  (alter-var-root (var *nrepl-spec*) (fn [_] opts)))
-
-(defn set-nrepl-timeout! [x]
-  (alter-var-root (var *nrepl-spec*) (fn [_] x)))
+  (alter-var-root (var *nrepl-spec*) (fn [_] (apply hash-map opts))))
 
 (defn remote-eval [form]
-  (with-open [conn (apply repl/connect *nrepl-spec*)]
+  (with-open [conn (apply repl/connect (flatten (seq *nrepl-spec*)))]
     (let [response (->
-                    (repl/client conn *nrepl-timeout*)
+                    (repl/client conn (:timeout *nrepl-spec* 10000))
                     (repl/message {:op "eval" :code (str form)}))
           response-map (repl/combine-responses response)]
       (when-let [out (:out response-map)]
@@ -38,11 +34,11 @@
         (create-ns sym)
         (when as (alias as sym))
         (let [remote-vars (remote-eval `(map first (ns-publics '~sym)))]
-          (doseq [name remote-vars]
-            (when (or reload
-                      (not (find-var (symbol (str sym) (str name)))))
-              (intern sym name (partial remote-fn-call (symbol (str sym) (str name)))))
-            (when (or (= referred :all)
-                      (some (partial = name) referred))
-              (intern *ns* name (find-var (symbol (str sym) (str name)))))))))))
+          (doseq [name remote-vars
+                  :let [var-sym (symbol (str sym) (str name))]
+                  :when (or reload (not (find-var var-sym)))]
+              (intern sym name (partial remote-fn-call var-sym))
+              (when (or (= referred :all)
+                        (some (partial = name) referred))
+                (intern *ns* name var-sym))))))))
 
