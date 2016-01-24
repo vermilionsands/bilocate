@@ -10,12 +10,17 @@
 
 (defn remote-eval
   "Connects to nREPL using specification stored at *nrepl-spec* and sends
-   form (Cons or String) for evaluation. Returns evaluation result or throws
+   form or string for evaluation. Returns evaluation result or throws
    an exception.
 
    Connection specification should be a map and supports the same keys as
    clojure.tools.nrepl/connect (:port, :host (defaults to localhost),
-   :transport-fn) and additionaly :timeout (defaults to 10000)."
+   :transport-fn) and additionaly :timeout (defaults to 10000).
+
+   Example:
+   (binding [*nrepl-spec* {:timeout 5000 :port 47319}]
+     (remote-eval '(defn add [x y] (+ x y)))
+     (remote-eval \"(add 2 3)\"))"
   [form]
   (with-open [conn (apply repl/connect (flatten (seq *nrepl-spec*)))]
     (let [response (->
