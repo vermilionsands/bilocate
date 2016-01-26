@@ -1,4 +1,4 @@
-(defproject bilocate "0.1.0"
+(defproject vermilionsands/bilocate "0.1.0"
   :description "Utility for interaction with remote nREPLs"
   :url "https://github.com/vermilionsands/bilocate"
   :license {:name "Eclipse Public License"
