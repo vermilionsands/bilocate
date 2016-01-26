@@ -23,7 +23,7 @@ There are two main functions:
  (b/require-remote-ns '[some-remote-ns :as remote :include [foo] :refer :all])
  
  ; call a var pointing to some-remote-ns/foo
- (foo)))
+ (foo))
 ```
 
 Calls to remote nREPL require a valid connection configuration stored in `*nrepl-spec*`. For available options see doc for `remote-eval`.
