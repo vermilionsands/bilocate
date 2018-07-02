@@ -125,7 +125,7 @@
         ~@forms)
      :skip-return))      
 
-(defn using-nrepl [host port & body]
+(defmacro using-nrepl [host port & body]
   `(binding [*nrepl-spec* {:host ~host :port ~port}]
      ~@body))
     
