@@ -85,3 +85,14 @@
     (is (bound? (find-var 'bilocate.core-test/foo)))
     (is (bound? (find-var 'bilocate.core-test/bar)))
     (is (bound? (find-var 'bilocate.core-test/zoo)))))
+
+(deftest define-ns-test
+  (testing "Define custom ns"
+    (remote-ns custom-ns
+      (require '[clojure.string :as string])
+      
+      (defn foo [] "foo")
+      (defn bar [x] (string/upper-case x)))  
+   
+    (is (= "foo"  (remote-fn-call 'custom-ns/foo)))    
+    (is (= "TEST" (remote-fn-call 'custom-ns/bar "test")))))   

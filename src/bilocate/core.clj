@@ -41,8 +41,13 @@
       (when-not (opts-set :skip-return)
         (last (repl/response-values response))))))
 
+(defn remote-var
+  "Alias for `remote-eval` to retrieve a val from remote val under `sym`."
+  [sym]
+  (remote-eval sym))
+
 (defn remote-fn-call
-  "Calls remote-eval passing (sym & args) as an argument."
+  "Calls `remote-eval` passing `(sym & args)` as an argument."
   [sym & args]
   (remote-eval (cons sym (apply list args))))
 
@@ -101,3 +106,26 @@
         (intern *ns* var-sym))))
   `(binding [*ns* ~*ns*]
      (require-remote-ns* ~@args)))
+
+(defmacro remote-ns 
+  "Helper to define a remote namespace.
+  
+   ```
+   (remote-ns some-ns
+     (require '[clojure.string :as string])
+
+     (defn foo [s] (string/upper-case s)))
+   ```
+  "
+  [name & forms]
+  `(remote-eval 
+     '(do 
+        (ns ~name)
+        (in-ns '~name)
+        ~@forms)
+     :skip-return))      
+
+(defn using-nrepl [host port & body]
+  `(binding [*nrepl-spec* {:host ~host :port ~port}]
+     ~@body))
+    
