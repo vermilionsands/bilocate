@@ -128,4 +128,19 @@
 (defmacro using-nrepl [host port & body]
   `(binding [*nrepl-spec* {:host ~host :port ~port}]
      ~@body))
-    
+
+(deftype RemoteVar [name]
+  clojure.lang.IDeref
+  (deref [this] 
+    (remote-var name)))
+
+(defmethod print-method RemoteVar [x ^java.io.Writer w]
+  (.write w (str "#RemoteVar[" (.name x) "]")))
+
+(defmacro refer-var 
+  [name remote-name]
+  `(def ~name (->RemoteVar '~remote-name)))    
+
+(defmacro refer-fn 
+  [name remote-name]
+  `(def ~name (partial remote-fn-call '~remote-name)))

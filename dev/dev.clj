@@ -13,6 +13,5 @@
     (defn remote-time [] (System/currentTimeMillis))
     (defn remote-add [x y] (+ x y))))
   
-
-(def defined-at (fn [] (b/remote-var 'dev-ns/defined-at)))
-(def remote-add (partial b/remote-fn-call 'dev-ns/remote-add))
+(b/refer-var defined-at dev-ns/defined-at)
+(b/refer-fn  remote-add dev-ns/remote-add)
