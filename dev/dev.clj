@@ -1,6 +1,5 @@
 (ns dev
-  (:require [bilocate.core :as b])
-  (:import (clojure.lang Var)))
+  (:require [bilocate.core :as b]))
 
 (def load-time (System/currentTimeMillis))
 
@@ -16,8 +15,3 @@
   
 (b/refer-var defined-at dev-ns/defined-at)
 (b/refer-fn  remote-add dev-ns/remote-add)
-
-(defmacro test-macro []
-  (let [sym 'xxx]
-    `(b/with-named-local-vars [~sym 1]
-       (println (keys (Var/getThreadBindings))))))
