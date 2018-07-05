@@ -1,12 +1,21 @@
 (ns bilocate.core
   {:doc "Utility for interaction with remote nREPLs"
    :author "vermilionsands"}
-  (:require [clojure.tools.nrepl :as repl]))
+  (:require [clojure.tools.nrepl :as repl]
+            [clojure.walk :as walk])
+  (:import [clojure.lang Compiler$LocalBinding Var]))
 
 (defonce ^:dynamic *nrepl-spec* nil)
 
 (defn set-nrepl-spec! [& opts]
   (alter-var-root (var *nrepl-spec*) (fn [_] (apply hash-map opts))))
+
+(defn replace-with-value [form]
+  (walk/postwalk 
+    #(if (and (symbol? %) (:local! (meta %)))
+       (some-> (resolve %) deref)
+       %)
+    form))
 
 (defn remote-eval
   "Connects to nREPL using specification stored at *nrepl-spec* and sends
@@ -107,6 +116,36 @@
   `(binding [*ns* ~*ns*]
      (require-remote-ns* ~@args)))
 
+(defn used-symbols [form]
+  (->> form
+       (tree-seq coll? seq)
+       (filter symbol?)
+       (set)))
+
+(defn- bindings [local-bindings used-symbols-set]
+  (->>
+    (filter
+      (fn [^Compiler$LocalBinding b]
+        (used-symbols-set (.sym b)))
+      local-bindings)
+    (mapcat
+      (fn [^Compiler$LocalBinding b]
+        [(list symbol (name (.sym b)))
+         (.sym b)]))
+    vec))
+
+(defmacro with-named-local-vars
+  [name-vals-vec & body]
+  `(let [~@(interleave (take-nth 2 name-vals-vec)
+                       (map
+                         #(doto (.setDynamic (Var/create))
+                            (.setMeta {::name %}))
+                         (take-nth 2 name-vals-vec)))]
+     (. Var (pushThreadBindings (hash-map ~@name-vals-vec)))
+     (try
+       ~@body
+       (finally (. Var (popThreadBindings))))))
+
 (defmacro remote-ns 
   "Helper to define a remote namespace.
   
@@ -118,12 +157,13 @@
    ```
   "
   [name & forms]
-  `(remote-eval 
-     '(do 
-        (ns ~name)
-        (in-ns '~name)
-        ~@forms)
-     :skip-return))      
+  `(remote-eval
+     (replace-with-value
+       '(do
+          (ns ~name)
+          (in-ns '~name)
+          ~@forms))
+     :skip-return))
 
 (defmacro using-nrepl [host port & body]
   `(binding [*nrepl-spec* {:host ~host :port ~port}]
